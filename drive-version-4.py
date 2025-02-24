@@ -1,31 +1,60 @@
 import pyodbc
 import tkinter as tk
-from tkinter import messagebox, Listbox
+from tkinter import messagebox, Listbox, filedialog
 from tkinter.ttk import Progressbar
 import os
 from datetime import datetime
 import threading
 import time
-import zipfile
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+def autenticar_google_drive():
+    gauth = GoogleAuth()
+    try:
+        gauth.LoadCredentialsFile("mycreds.txt")
+    except Exception as e:
+        logging.error(f"Erro ao acessar mycreds.txt: {e}")
+
+    if not gauth.credentials:
+        logging.info("Autenticação local do servidor")
+        gauth.LocalWebserverAuth()  # Authenticate if they're not there
+    elif gauth.access_token_expired:
+        logging.info("Token expirado, tentando renovar")
+        gauth.Refresh()  # Refresh them if expired
+    else:
+        logging.info("Autorizando com credenciais salvas")
+        gauth.Authorize()  # Initialize the saved creds
+
+    gauth.SaveCredentialsFile("mycreds.txt")  # Save the current credentials
+    logging.info("Credenciais salvas com sucesso")
+
+    return GoogleDrive(gauth)
+
+
+# Exemplo de uso:
+try:
+    drive = autenticar_google_drive()
+    logging.info("Autenticação concluída com sucesso")
+except Exception as e:
+    logging.error(f"Erro durante a autenticação: {e}")
 
 def listar_bancos_de_dados(listbox):
-    # Informações do banco de dados inseridas internamente
-    server = '.\\PDVNET'  # Substitua por seu servidor
-    username = 'sa'  # Substitua por seu usuário
-    password = 'inter#system'  # Substitua por sua senha
+    server = '.\\PDVNET'
+    username = 'sa'
+    password = 'inter#system'
 
     try:
-        # Conexão com o SQL Server
         with pyodbc.connect(
                 f'DRIVER={{SQL Server}};'
                 f'SERVER={server};'
                 f'UID={username};'
                 f'PWD={password}'
         ) as conexao:
-
             cursor = conexao.cursor()
-
-            # Consulta para obter os nomes dos bancos de dados
             cursor.execute("SELECT name FROM sys.databases")
 
             listbox.delete(0, tk.END)
@@ -37,18 +66,17 @@ def listar_bancos_de_dados(listbox):
     except Exception as e:
         messagebox.showerror("Erro", str(e))
 
+
 def fazer_backup(database, progress_bar, root):
-    # Informações do banco de dados inseridas internamente
-    server = '.\\PDVNET'  # Substitua por seu servidor
-    username = 'sa'  # Substitua por seu usuário
-    password = 'inter#system'  # Substitua por sua senha
+    server = '.\\PDVNET'
+    username = 'sa'
+    password = 'inter#system'
 
     if not database:
         messagebox.showerror("Erro", "O nome do banco de dados não foi inserido.")
         return
 
     try:
-        # Conexão com o SQL Server
         with pyodbc.connect(
                 f'DRIVER={{SQL Server}};'
                 f'SERVER={server};'
@@ -56,93 +84,78 @@ def fazer_backup(database, progress_bar, root):
                 f'UID={username};'
                 f'PWD={password}'
         ) as conexao:
-
-            conexao.autocommit = True  # Desativa a transação automática
-
+            conexao.autocommit = True
             cursor = conexao.cursor()
-
-            # Confirmação da conexão
             cursor.execute("SELECT 1")
 
-            # Gerar nome do backup com datetime
             timestamp = datetime.now().strftime("%d-%m-%Y")
             backup_name = f"{database}-{timestamp}.bak"
-
-            # Caminho do backup
             caminho_backup = os.path.join("C:\\SQLBackups", backup_name)
-
-            # Verifica se o diretório existe, caso contrário cria-o
             os.makedirs(os.path.dirname(caminho_backup), exist_ok=True)
 
-            # Comando de backup
             comando_backup = f"BACKUP DATABASE [{database}] TO DISK = N'{caminho_backup}' WITH NOFORMAT, NOINIT, NAME = '{database}-Full Database Backup', SKIP, NOREWIND, NOUNLOAD, STATS = 10"
             cursor.execute(comando_backup)
 
             progress_bar["value"] = 100
             root.update_idletasks()
+            time.sleep(10)
             messagebox.showinfo("Sucesso", "Backup realizado com sucesso!")
 
-            # Adicionar uma pausa para garantir que o arquivo esteja completamente liberado
-            time.sleep(10)
-
-            # Perguntar se deseja compactar o arquivo de backup
-            if messagebox.askyesno("Compactar Backup", "Você deseja compactar o arquivo de backup?"):
-                compactar_backup(caminho_backup, database, timestamp, progress_bar, root)
-
     except Exception as e:
-        messagebox.showerror("Erro", f"Erro ao tentar fazer backup: {str(e)}")
-        print(f"Erro detalhado: {e}")
+        messagebox.showerror("Erro", str(e))
 
     finally:
         progress_bar["value"] = 0
         root.update_idletasks()
 
-def compactar_backup(caminho_backup, database, timestamp, progress_bar, root):
-    try:
-        # Compactar o arquivo de backup com eficiência
-        zip_name = f"{database}-{timestamp}.zip"
-        caminho_zip = os.path.join("C:\\SQLBackups", zip_name)
-        with zipfile.ZipFile(caminho_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            zipf.write(caminho_backup, os.path.basename(caminho_backup))
-
-        # Remover o arquivo .bak após compactação
-        os.remove(caminho_backup)
-
-        messagebox.showinfo("Sucesso", "Backup compactado com sucesso!")
-
-    except Exception as e:
-        messagebox.showerror("Erro", f"Erro ao tentar compactar o arquivo: {str(e)}")
-        print(f"Erro detalhado: {e}")
 
 def iniciar_backup(database, progress_bar, root):
     progress_bar["value"] = 0
     root.update_idletasks()
     threading.Thread(target=fazer_backup, args=(database, progress_bar, root)).start()
 
+
+def autenticar_google_drive():
+    gauth = GoogleAuth()
+    gauth.LoadClientConfigFile("client_secrets.json")
+    gauth.LoadCredentialsFile("mycreds.txt")
+    if not gauth.credentials:
+        gauth.LocalWebserverAuth()
+    elif gauth.access_token_expired:
+        gauth.Refresh()
+    else:
+        gauth.Authorize()
+    gauth.SaveCredentialsFile("mycreds.txt")
+    return GoogleDrive(gauth)
+
+def fazer_upload_google_drive(file_path):
+    drive = autenticar_google_drive()
+    arquivo = drive.CreateFile({'title': os.path.basename(file_path)})
+    arquivo.SetContentFile(file_path)
+    arquivo.Upload()
+    messagebox.showinfo("Sucesso", f"Arquivo {os.path.basename(file_path)} enviado com sucesso para o Google Drive!")
+
+def escolher_e_fazer_upload():
+    file_path = filedialog.askopenfilename()
+    if file_path:
+        fazer_upload_google_drive(file_path)
+
 def criar_interface():
     root = tk.Tk()
     root.title("Backup do SQL Server")
 
-    # Labels e entrada
     tk.Label(root, text="Nome do banco de dados:").grid(row=0)
-
     nome_banco = tk.Entry(root)
     nome_banco.grid(row=0, column=1)
 
-    # Barra de progresso
     progress_bar = Progressbar(root, orient="horizontal", length=200, mode="determinate")
     progress_bar.grid(row=1, columnspan=2, pady=10)
 
-    # Botão de backup
-    tk.Button(root, text="Fazer Backup", command=lambda: iniciar_backup(nome_banco.get(), progress_bar, root)).grid(
-        row=2, columnspan=2)
-
-    # Listbox para exibir bancos de dados
+    tk.Button(root, text="Fazer Backup", command=lambda: iniciar_backup(nome_banco.get(), progress_bar, root)).grid(row=2, columnspan=2)
     listbox = Listbox(root)
     listbox.grid(row=3, columnspan=2, pady=10)
-
-    # Botão para listar bancos de dados
     tk.Button(root, text="Listar bancos de dados", command=lambda: listar_bancos_de_dados(listbox)).grid(row=4, columnspan=2)
+    tk.Button(root, text="Fazer Upload para o Google Drive", command=escolher_e_fazer_upload).grid(row=5, columnspan=2, pady=10)
 
     root.mainloop()
 

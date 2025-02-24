@@ -1,8 +1,0 @@
-{
-    "installed":{"client_id":"87161712604-gnsh58hmsjpfe1qiikjr81cqip7tmalk.apps.googleusercontent.com",
-    "project_id":"testedrive-451522",
-    "auth_uri":"https://accounts.google.com/o/oauth2/auth",
-    "token_uri":"https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
-    "client_secret":"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",
-    "redirect_uris":["http://localhost"]}}
