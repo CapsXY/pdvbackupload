@@ -1,10 +1,11 @@
 import datetime
 import logging
 import os
+import sys
 import time
 import tkinter as tk
 from datetime import datetime
-from tkinter import Tk, Canvas, Frame, Label, Button, filedialog, messagebox, Listbox, Entry
+from tkinter import Canvas, Frame, Label, Button, filedialog, messagebox, Listbox, Entry
 
 import pyodbc
 from PIL import Image, ImageTk
@@ -12,6 +13,14 @@ from PIL.Image import Resampling
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
+# Função para o diretório dos arquivos estarem de acordo com o pyinstaller
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 # Função para executar a tela de backup
 def run_backup():
@@ -121,9 +130,11 @@ logging.basicConfig(level=logging.INFO)
 # Função para autenticar no Google Drive
 def autenticar_google_drive():
     gauth = GoogleAuth()
-    gauth.LoadClientConfigFile("clientsecrets.json")
+    client_config_path = resource_path("clientsecrets.json")
+    gauth.LoadClientConfigFile(client_config_path)
     try:
-        gauth.LoadCredentialsFile("mycreds.txt")
+        creds_path = resource_path("mycreds.txt")
+        gauth.LoadCredentialsFile(creds_path)
     except Exception as e:
         logging.error(f"Erro ao acessar mycreds.txt: {e}")
 
@@ -137,7 +148,7 @@ def autenticar_google_drive():
         logging.info("Autorizando com credenciais salvas")
         gauth.Authorize()
 
-    gauth.SaveCredentialsFile("mycreds.txt")
+    gauth.SaveCredentialsFile(creds_path)
     logging.info("Credenciais salvas com sucesso")
 
     return GoogleDrive(gauth)
@@ -175,7 +186,7 @@ def on_leave(event, color="#FFFFFF"):
 
 # Interface principal
 
-window = Tk()
+window = tk.Tk()
 window.geometry("600x500")
 window.title("PDVNET - Backup & Upload")
 window.configure(bg="#FFFFFF")
@@ -291,13 +302,13 @@ canvas.create_rectangle(
     outline="")
 
 # Icone
-icon_path = "logo-short.png"
+icon_path = resource_path("logoshort.png")
 icon = Image.open(icon_path)
 photo = ImageTk.PhotoImage(icon)
 window.iconphoto(True, photo)
 
 # Imagem
-image_path = "logo.png"
+image_path = resource_path("logo.png")
 image = Image.open(image_path)
 image = image.resize((150, 35), Resampling.LANCZOS)
 photo = ImageTk.PhotoImage(image)
