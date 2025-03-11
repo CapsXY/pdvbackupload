@@ -5,7 +5,8 @@ import sys
 import time
 import zipfile
 from datetime import datetime, timedelta
-from tkinter import Canvas, Frame, Label, Button, filedialog, messagebox, Listbox, Entry, END, OptionMenu, StringVar, Tk
+from tkinter import Canvas, Frame, Label, Button, filedialog, messagebox, Listbox, Entry, END, OptionMenu, StringVar, \
+    Tk, ttk
 
 import pyodbc
 from PIL import Image, ImageTk
@@ -30,20 +31,23 @@ def run_backup():
     new_frame = Frame(canvas, bg="#E9E9E9", width=500, height=500)
     new_frame.place(x=185, y=0)
 
-    Label(new_frame, text="Nome do banco de dados:", font=("RobotoFlex Bold", 10, "bold"), bg="#E9E9E9",
-          fg="#523EAD").place(x=30, y=15)
+    Label(new_frame, text="Informe o nome do banco de dados para o backup", font=("RobotoFlex Bold", 11, "bold"),
+          bg="#E9E9E9",
+          fg="#523EAD").place(x=30, y=30)
+
+    Label(new_frame, text="Banco de dados:", bg="#E9E9E9").place(x=25, y=70)
 
     entry_db_name = Entry(canvas)
-    canvas.create_window(400, 15, anchor="nw", window=entry_db_name, width=150, height=22)
+    canvas.create_window(325, 68, anchor="nw", window=entry_db_name, width=250, height=22)
 
-    btn_backup = Button(canvas, text="Fazer Backup", command=lambda: backup(entry_db_name.get(), window))
-    canvas.create_window(470, 50, anchor="nw", window=btn_backup)
+    btn_backup = Button(canvas, text="Iniciar backup", command=lambda: backup(entry_db_name.get(), window))
+    canvas.create_window(490, 100, anchor="nw", window=btn_backup)
 
     btn_bancos = Button(canvas, text="Listar bancos de dados", command=lambda: list_database(listbox))
-    canvas.create_window(230, 50, anchor="nw", window=btn_bancos)
+    canvas.create_window(225, 120, anchor="nw", window=btn_bancos)
 
     listbox = Listbox(canvas)
-    canvas.create_window(220, 90, anchor="nw", window=listbox, width=150, height=400)
+    canvas.create_window(215, 155, anchor="nw", window=listbox, width=150, height=320)
 
 
 # Função para listar os bancos de dados
@@ -114,16 +118,25 @@ def run_upload():
     new_frame.place(x=180, y=0)
 
     Label(new_frame, text="Selecione um arquivo para realizar o upload", font=("RobotoFlex Bold", 12, "bold"),
-          bg="#E9E9E9",
-          fg="#523EAD").place(x=40, y=50)
-    Button(new_frame, text="Selecione Arquivo", command=select_file).place(x=145, y=90)
+          bg="#E9E9E9", fg="#523EAD").place(x=40, y=50)
+
+    Button(new_frame, text="Selecione Arquivo", command=lambda: select_file(new_frame, progress_bar)).place(x=145, y=85)
+
+    # Barra de progresso
+    progress_bar = ttk.Progressbar(new_frame, orient="horizontal", length=360, mode="determinate")
+    progress_bar.place(x=30, y=125)
+
+    Label(new_frame, text="Dica: Faça o upload do arquivo com apenas o número do chamado.", font=("RobotoFlex", 10,),
+          bg="#E9E9E9", fg="#523EAD").place(x=13, y=155)
+    Label(new_frame, text="Ex.: 989001.zip", font=("RobotoFlex", 10,),
+          bg="#E9E9E9", fg="#523EAD").place(x=13, y=175)
 
 
 # Função para selecionar o arquivo do computador
-def select_file():
+def select_file(new_frame, progress_bar):
     file_path = filedialog.askopenfilename()
     if file_path:
-        fazer_upload_google_drive(file_path)
+        upload_google_drive(file_path, progress_bar, new_frame)
 
 
 # Recurso para verificar e gerar mensagens referente a conexão do Google Drive.
@@ -131,7 +144,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 # Função para autenticar no Google Drive
-def autenticar_google_drive():
+def authenticate_google_drive():
     gauth = GoogleAuth()
     client_config_path = resource_path("clientsecrets.json")
     gauth.LoadClientConfigFile(client_config_path)
@@ -156,28 +169,41 @@ def autenticar_google_drive():
 
     return GoogleDrive(gauth)
 
+# Função para realizar upload no Google Drive
+def upload_google_drive(file_path, progress_bar, window):
+    try:
+        # Inicializa o progresso
+        progress_bar["value"] = 0
+        window.update_idletasks()
 
-# Função para fazer o upload no Google Drive
-def fazer_upload_google_drive(file_path):
-    drive = autenticar_google_drive()
-    arquivo = drive.CreateFile({'title': os.path.basename(file_path)})
-    arquivo.SetContentFile(file_path)
-    arquivo.Upload()
+        # Simulação de autenticação e upload
+        drive = authenticate_google_drive()
+        arquivo = drive.CreateFile({'title': os.path.basename(file_path)})
 
-    # Gerar link de compartilhamento público
-    arquivo.InsertPermission({
-        'type': 'anyone',
-        'value': 'anyone',
-        'role': 'reader'
-    })
-    link_publico = arquivo['alternateLink']
-    messagebox.showinfo("Sucesso",
-                        f"Arquivo {os.path.basename(file_path)} enviado com sucesso para o Google Drive!\nLink público: {link_publico}")
+        arquivo.SetContentFile(file_path)
 
+        # Atualiza a barra de progresso dinamicamente
+        for i in range(1, 101):  # Simula um progresso de 1% a cada iteração
+            time.sleep(0.05)  # Simula um tempo de delay para demonstrar progresso
+            progress_bar["value"] = i
+            window.update_idletasks()
 
-# Função para alterar a cor do texto (clickable_text) ao passar o mouse
-def on_enter(event, color="#3B92AC"):
-    canvas.itemconfig(event.widget.find_withtag("current"), fill=color)
+        arquivo.Upload()
+
+        # Gerar link de compartilhamento público
+        arquivo.InsertPermission({
+            'type': 'anyone',
+            'value': 'anyone',
+            'role': 'reader'
+        })
+        link_publico = arquivo['alternateLink']
+        messagebox.showinfo("Sucesso",
+                            f"Arquivo {os.path.basename(file_path)} enviado com sucesso!\nLink: {link_publico}")
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Falha ao fazer upload: {str(e)}")
+    finally:
+        progress_bar["value"] = 0  # Reseta a barra de progresso ao final
 
 
 # Módulos
@@ -207,7 +233,7 @@ def run_audit():
 
     Label(new_frame, text="Selecione um arquivo para realizar o upload", font=("RobotoFlex Bold", 12, "bold"),
           bg="#E9E9E9",
-          fg="#523EAD").place(x=30, y=30)
+          fg="#523EAD").place(x=40, y=30)
 
     def select_origin():
         origin_folder = filedialog.askdirectory()
@@ -303,6 +329,11 @@ def search_files(initial_date, final_date, origin_folder, destiny_folder, option
         messagebox.showerror("Erro", str(e))
     except Exception as e:
         messagebox.showerror("Erro", str(e))
+
+
+# Função para alterar a cor do texto (clickable_text) ao passar o mouse
+def on_enter(event, color="#3B92AC"):
+    canvas.itemconfig(event.widget.find_withtag("current"), fill=color)
 
 
 # Função para alterar a cor do texto (clickable_text) ao tirar o mouse
