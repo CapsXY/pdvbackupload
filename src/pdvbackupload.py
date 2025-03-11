@@ -169,6 +169,7 @@ def authenticate_google_drive():
 
     return GoogleDrive(gauth)
 
+
 # Função para realizar upload no Google Drive
 def upload_google_drive(file_path, progress_bar, window):
     try:
@@ -207,6 +208,8 @@ def upload_google_drive(file_path, progress_bar, window):
 
 
 # Módulos
+
+
 module = {
     "PDVGESTOR": "1",
     "PDVFINAN": "2",
