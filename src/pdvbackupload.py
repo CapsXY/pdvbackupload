@@ -11,8 +11,8 @@ from tkinter import Canvas, Frame, Label, Button, filedialog, messagebox, Listbo
 import pyodbc
 from PIL import Image, ImageTk
 from PIL.Image import Resampling
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 from tkcalendar import DateEntry
 
 
@@ -139,8 +139,10 @@ def select_file(new_frame, progress_bar):
         upload_google_drive(file_path, progress_bar, new_frame)
 
 
-# Recurso para verificar e gerar mensagens referente a conexão do Google Drive.
-logging.basicConfig(level=logging.INFO)
+# Recurso para verificar e gerar mensagens referente a conexão do Google Drive no terminal.
+# logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.DEBUG)
+# logging.getLogger('googleapiclient.discovery').setLevel(logging.DEBUG)
 
 
 # Função para autenticar no Google Drive
