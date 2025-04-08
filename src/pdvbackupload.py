@@ -6,7 +6,7 @@ import time
 import zipfile
 from datetime import datetime, timedelta
 from tkinter import Canvas, Frame, Label, Button, filedialog, messagebox, Listbox, Entry, END, OptionMenu, StringVar, \
-    Tk, ttk
+    Tk, ttk, Toplevel
 
 import pyodbc
 from PIL import Image, ImageTk
@@ -50,11 +50,15 @@ def run_backup():
     canvas.create_window(215, 155, anchor="nw", window=listbox, width=150, height=320)
 
 
+# Variáveis globais para credenciais do banco
+server = '.\\PDVNET'
+username = 'sa'
+password = 'inter#system'
+
+
 # Função para listar os bancos de dados
 def list_database(listbox):
-    server = '.\\PDVNET'
-    username = 'sa'
-    password = 'inter#system'
+    global server, username, password
 
     try:
         with pyodbc.connect(
@@ -71,7 +75,37 @@ def list_database(listbox):
                 listbox.insert(END, row[0])
 
     except Exception as e:
-        messagebox.showerror("Erro", "Não foi foi possível encontrar banco(s) de dados :(")
+        messagebox.showerror("Erro", "Não foi possível encontrar banco(s) de dados.")
+        config_server(listbox)
+
+
+# Função para exibir tela de configuração do servidor
+def config_server(listbox):
+    def update_credentials():
+        global server, username, password
+        server = entry_server.get()
+        username = entry_user.get()
+        password = entry_password.get()
+        top.destroy()
+        list_database(listbox)  # Tenta listar os bancos novamente com os novos dados
+
+    top = Toplevel()
+    top.title("Config. do SQL")
+    top.geometry("250x150")
+
+    Label(top, text="Servidor:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+    entry_server = Entry(top)
+    entry_server.grid(row=0, column=1, padx=5, pady=5)
+
+    Label(top, text="Usuário:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+    entry_user = Entry(top)
+    entry_user.grid(row=1, column=1, padx=5, pady=5)
+
+    Label(top, text="Senha:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+    entry_password = Entry(top, show="*")  # Oculta a senha
+    entry_password.grid(row=2, column=1, padx=5, pady=5)
+
+    Button(top, text="Confirmar", command=update_credentials).grid(row=3, column=0, columnspan=2, pady=5)
 
 
 # Função para realizar backup
@@ -210,8 +244,6 @@ def upload_google_drive(file_path, progress_bar, window):
 
 
 # Módulos
-
-
 module = {
     "PDVGESTOR": "1",
     "PDVFINAN": "2",
@@ -470,7 +502,7 @@ canvas.create_text(
     12.0,
     473.0,
     anchor="nw",
-    text="ver. 1.1",
+    text="ver. 1.2",
     fill="#FFFFFF",
     font=("RobotoFlex Regular", 14 * -1)
 )
