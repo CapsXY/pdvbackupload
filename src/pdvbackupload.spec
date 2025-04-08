@@ -5,7 +5,7 @@ a = Analysis(
     ['pdvbackupload.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('clientsecrets.json', '.'), ('credentials.json', '.'), ('logo.png', '.'), ('logoshort.ico', '.'), ('logoshort.png', '.'), ('mycreds.txt', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

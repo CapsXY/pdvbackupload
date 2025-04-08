@@ -1,0 +1,4 @@
+Comando para copilar o código para .exe
+
+pyinstaller --onefile --windowed --add-data "clientsecrets.json;." --add-data "credentials.json;." --add-data "logo.png;." --add-data "logoshort.ico;." --add-data "logoshort.png;." --add-data "mycreds.txt;." pdvbackupload.py
+
